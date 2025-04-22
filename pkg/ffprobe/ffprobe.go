@@ -2,6 +2,7 @@ package ffprobe
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/grilario/video-converter/pkg/runner"
 )
@@ -21,9 +22,9 @@ type Stream struct {
 }
 
 // executes ffprobe getting information about file streams
-func Info(filepath string, runner *runner.Runner) (MediaDetails, error) {
+func Info(filepath string, runner runner.Runner) (MediaDetails, error) {
 	args := []string{filepath, "-show_streams", "-loglevel", "error", "-print_format", "json"}
-	buf, err := runner.FFprobe().Exec(args)
+	buf, err := runner.FFprobe(args)
 	if err != nil {
 		return MediaDetails{}, err
 	}
@@ -37,4 +38,21 @@ func Info(filepath string, runner *runner.Runner) (MediaDetails, error) {
 	data.Filepath = filepath
 
 	return data, nil
+}
+
+func MediaDuration(filename string, runner runner.Runner) (float64, error) {
+	args := []string{filename, "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", "-loglevel", "error"}
+	buf, err := runner.FFprobe(args)
+	if err != nil {
+		return 0, err
+	}
+
+	timeStr := string(buf[0:(len(buf) - 1)]) // remove \n from the end of the slice
+	time, err := strconv.ParseFloat(timeStr, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	duration := time * 1_000_000 // convert seconds to microsecond
+	return duration, nil
 }

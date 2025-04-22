@@ -13,7 +13,7 @@ func TestInfo(t *testing.T) {
 
 	type args struct {
 		filepath string
-		runner   *runner.Runner
+		runner   runner.Runner
 	}
 	tests := []struct {
 		name    string
@@ -23,7 +23,7 @@ func TestInfo(t *testing.T) {
 	}{
 		{
 			"must return streams information about media",
-			args{videoFile, &r},
+			args{videoFile, r},
 			MediaDetails{
 				Filepath: videoFile,
 				Streams:  []Stream{{0, "video", "h264", "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10"}},
@@ -32,7 +32,7 @@ func TestInfo(t *testing.T) {
 		},
 		{
 			"must return an error",
-			args{"unknown", &r},
+			args{"unknown", r},
 			MediaDetails{},
 			true,
 		},
@@ -51,4 +51,15 @@ func TestInfo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMediaDuration(t *testing.T) {
+	t.Run("must be return media duration", func(t *testing.T) {
+		r, _ := runner.NewRunner()
+
+		duration, err := MediaDuration("../../tests/video.mp4", r)
+		if assert.NoError(t, err) {
+			assert.Equal(t, duration, 3067000.0)
+		}
+	})
 }
