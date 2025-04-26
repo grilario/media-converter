@@ -10,69 +10,132 @@ import (
 	"github.com/grilario/video-converter/pkg/runner"
 )
 
-type Media struct {
-	InFilename  string
-	OutFilename string
-	// order of array streams preserves the stream media order
-	Streams []*Stream
+type Codec uint8
+
+const (
+	COPY Codec = iota
+	H264
+	H265
+	VP9
+	AV1
+)
+
+func (c Codec) String() string {
+	switch c {
+	case COPY:
+		return "COPY"
+	case H264:
+		return "H264"
+	case H265:
+		return "H265"
+	case VP9:
+		return "VP9"
+	case AV1:
+		return "AV1"
+	}
+
+	return "unknown"
+}
+
+func (c Codec) encoder() string {
+	switch c {
+	case COPY:
+		return "copy"
+	case H264:
+		return "libx264"
+	case H265:
+		return "libx265"
+	case VP9:
+		return "libvpx-vp9"
+	case AV1:
+		return "libsvtav1"
+	}
+
+	return "unknown"
+}
+
+func ListCodecs() []Codec {
+	return []Codec{COPY, H264, H265, VP9, AV1}
 }
 
 type Stream struct {
-	codec_in_type  string
-	codec_in_name  string
-	codec_out_type string
-	remove         bool
+	codecType     string
+	codecName     string
+	codecLongName string
+	codecOut      Codec
+	remove        bool
 }
 
-func NewMedia(input ffprobe.MediaDetails, outPath string) (Media, error) {
+func (s Stream) Options() (string, string, Codec, bool) {
+	return s.codecType, s.codecName, s.codecOut, s.remove
+}
+
+type Media struct {
+	// path of input that will be handled by ffmpeg
+	Input string
+	// path of output that will be handled by ffmpeg
+	Output string
+	// order of array preserves the stream media order of input
+	Streams []Stream
+}
+
+func NewMedia(probe ffprobe.MediaDetails, outPath string) (Media, error) {
 	m := Media{
-		InFilename:  input.Filepath,
-		OutFilename: outPath,
+		Input:  probe.Filepath,
+		Output: outPath,
 	}
 
-	for _, stream := range input.Streams {
-		m.Streams = append(m.Streams, &Stream{stream.Codec_type, stream.Codec_name, stream.Codec_type, false})
+	for _, s := range probe.Streams {
+		m.Streams = append(m.Streams, Stream{s.Codec_type, s.Codec_name, s.Codec_long_name, COPY, false})
 	}
 
 	return m, nil
 }
 
 type Config struct {
-	codec_type string
-	remove     bool
+	Codec  Codec
+	Remove bool
 }
 
-func (m *Media) UpdateStream(index int, config Config) {
-	stream := m.Streams[index]
-	stream.codec_out_type = config.codec_type
-	stream.remove = config.remove
+func (m *Media) UpdateStream(stream *Stream, config Config) {
+	hasStream := false
+	for i := range m.Streams {
+		if &m.Streams[i] == stream {
+			hasStream = true
+		}
+	}
+
+	if hasStream {
+		stream.codecOut = config.Codec
+		stream.remove = config.Remove
+	}
 }
 
 // Convert calls ffmpeg runner with arguments generated based in Streams field,
 // it's send progress to channel (1 == 100%) and any errors occurred to channel error
 func (m *Media) Convert(progress chan float64, errors chan error, runner runner.Runner) {
-	duration, err := ffprobe.MediaDuration(m.InFilename, runner)
+	duration, err := ffprobe.MediaDuration(m.Input, runner)
 	if err != nil {
 		errors <- err
 		return
 	}
 
-	args := []string{"-y", "-loglevel", "warning", "-progress", "pipe:1", "-nostats", "-i", m.InFilename}
+	args := []string{"-y", "-loglevel", "warning", "-progress", "pipe:1", "-nostats", "-i", m.Input}
 
 	for i, stream := range m.Streams {
 		if stream.remove {
 			continue
 		}
 
-		if stream.codec_in_type == stream.codec_out_type {
+		if stream.codecOut == COPY {
 			args = append(args, "-map", fmt.Sprintf("0:%v", i), "-codec", "copy")
 		} else {
-			args = append(args, "-map", fmt.Sprintf("0:%v", i), "-codec", fmt.Sprintf("%v", stream.codec_out_type))
+			args = append(args, "-map", fmt.Sprintf("0:%v", i), "-codec", fmt.Sprintf("%v", stream.codecOut.encoder()))
 		}
 
 	}
 
-	args = append(args, m.OutFilename)
+	args = append(args, m.Output)
 
 	stdout := make(chan []byte)
 	ffErrs := make(chan error)

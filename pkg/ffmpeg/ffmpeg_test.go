@@ -21,8 +21,8 @@ func TestNewMedia(t *testing.T) {
 			return
 		}
 
-		assert.Equal(t, input.Filepath, media.InFilename)
-		assert.Equal(t, "any", media.OutFilename)
+		assert.Equal(t, input.Filepath, media.Input)
+		assert.Equal(t, "any", media.Output)
 		assert.Len(t, media.Streams, len(input.Streams))
 	})
 }
@@ -39,9 +39,9 @@ func TestMedia_UpdateStream(t *testing.T) {
 			return
 		}
 
-		m.UpdateStream(0, Config{codec_type: "h.265"})
+		m.UpdateStream(&m.Streams[0], Config{Codec: H265})
 
-		assert.Equal(t, m.Streams[0].codec_out_type, "h.265")
+		assert.Equal(t, "H.265", m.Streams[0].codecOut.String())
 	})
 }
 
@@ -61,7 +61,7 @@ func TestMedia_Convert(t *testing.T) {
 			return
 		}
 
-		m.UpdateStream(0, Config{codec_type: "libx264"})
+		m.UpdateStream(&m.Streams[0], Config{Codec: H264})
 
 		p := make(chan float64)
 		e := make(chan error)
