@@ -1,4 +1,4 @@
-package ui
+package tui
 
 import (
 	"fmt"
@@ -15,11 +15,11 @@ func (p Progress) Update(msg Msg, app App) (tea.Model, tea.Cmd) {
 	case ProgressMsg:
 		if msg.error != nil {
 			panic(msg.error)
-			return app, tea.Quit
+			// return app, tea.Quit
 		}
 
 		p.progress = msg.progress
-		app.currentTab = p
+		app.page = p
 	}
 
 	return app, nil

@@ -7,35 +7,75 @@ import (
 	"github.com/grilario/video-converter/pkg/runner"
 )
 
-type Executor struct{}
-
 type MediaDetails struct {
-	Filepath string
-	Streams  []Stream
+	Path    string
+	Streams []Stream
 }
 
 type Stream struct {
-	Index           int
-	Codec_type      string
-	Codec_name      string
-	Codec_long_name string
+	Index         int
+	CodecType     string
+	CodecName     string
+	CodecLongName string
+
+	// in some media the cover image is a stream
+	IsAttachment bool
 }
 
 // executes ffprobe getting information about file streams
-func Info(filepath string, runner runner.Runner) (MediaDetails, error) {
-	args := []string{filepath, "-show_streams", "-loglevel", "error", "-print_format", "json"}
+func Info(path string, runner runner.Runner) (MediaDetails, error) {
+	args := []string{path, "-show_streams", "-loglevel", "error", "-print_format", "json"}
 	buf, err := runner.FFprobe(args)
 	if err != nil {
 		return MediaDetails{}, err
 	}
 
-	var data MediaDetails
-	err = json.Unmarshal([]byte(buf), &data)
+	details, err := decode(buf)
 	if err != nil {
 		return MediaDetails{}, err
 	}
 
-	data.Filepath = filepath
+	media := details.IntoMediaDetails()
+	media.Path = path
+
+	return media, nil
+}
+
+type detailsJson struct {
+	Streams []streamJson
+}
+
+type streamJson struct {
+	Index         int
+	CodecType     string `json:"codec_type"`
+	CodecName     string `json:"codec_name"`
+	CodecLongName string `json:"codec_long_name"`
+	Disposition   dispositionJson
+}
+
+type dispositionJson struct {
+	AttachmentPic int `json:"attached_pic"`
+}
+
+func (d detailsJson) IntoMediaDetails() MediaDetails {
+	var streams []Stream
+	for _, s := range d.Streams {
+		isAttachment := s.Disposition.AttachmentPic == 1
+
+		streams = append(streams, Stream{s.Index, s.CodecType, s.CodecName, s.CodecLongName, isAttachment})
+	}
+
+	return MediaDetails{
+		Streams: streams,
+	}
+}
+
+func decode(buf []byte) (detailsJson, error) {
+	var data detailsJson
+	err := json.Unmarshal(buf, &data)
+	if err != nil {
+		return detailsJson{}, err
+	}
 
 	return data, nil
 }

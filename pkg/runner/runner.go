@@ -23,12 +23,13 @@ func NewRunner() (Runner, error) {
 func (r *DefaultRunner) FFprobe(args []string) ([]byte, error) {
 	cmd := exec.Command("ffprobe", args...)
 
-	var stdout bytes.Buffer
+	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("%v \nArguments: %#v \nError: %v", err, args, stderr.String())
 	}
 
 	return stdout.Bytes(), nil

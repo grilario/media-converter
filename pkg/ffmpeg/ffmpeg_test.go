@@ -12,8 +12,8 @@ import (
 func TestNewMedia(t *testing.T) {
 	t.Run("must be create new media", func(t *testing.T) {
 		input := ffprobe.MediaDetails{
-			Filepath: "simple.mkv",
-			Streams:  []ffprobe.Stream{{Index: 0, Codec_type: "video", Codec_name: "h264", Codec_long_name: "h264 mpeg"}},
+			Path:    "simple.mkv",
+			Streams: []ffprobe.Stream{{Index: 0, CodecType: "video", CodecName: "h264", CodecLongName: "h264 mpeg"}},
 		}
 
 		media, err := NewMedia(input, "any")
@@ -21,17 +21,17 @@ func TestNewMedia(t *testing.T) {
 			return
 		}
 
-		assert.Equal(t, input.Filepath, media.Input)
+		assert.Equal(t, input.Path, media.Input)
 		assert.Equal(t, "any", media.Output)
-		assert.Len(t, media.Streams, len(input.Streams))
+		assert.Len(t, media.Streams(), len(input.Streams))
 	})
 }
 
 func TestMedia_UpdateStream(t *testing.T) {
-	t.Run("must be set out type equal H.265", func(t *testing.T) {
+	t.Run("must be set out type equal H265", func(t *testing.T) {
 		input := ffprobe.MediaDetails{
-			Filepath: "simple.mkv",
-			Streams:  []ffprobe.Stream{{Index: 0, Codec_type: "video", Codec_name: "h264", Codec_long_name: "h264 mpeg"}},
+			Path:    "simple.mkv",
+			Streams: []ffprobe.Stream{{Index: 0, CodecType: "video", CodecName: "h264", CodecLongName: "h264 mpeg"}},
 		}
 
 		m, err := NewMedia(input, "any")
@@ -39,9 +39,9 @@ func TestMedia_UpdateStream(t *testing.T) {
 			return
 		}
 
-		m.UpdateStream(&m.Streams[0], Config{Codec: H265})
+		m.ConfigStream(&m.streams[0], Config{Codec: H265})
 
-		assert.Equal(t, "H.265", m.Streams[0].codecOut.String())
+		assert.Equal(t, "H265", m.streams[0].outCodec.String())
 	})
 }
 
@@ -61,7 +61,7 @@ func TestMedia_Convert(t *testing.T) {
 			return
 		}
 
-		m.UpdateStream(&m.Streams[0], Config{Codec: H264})
+		m.ConfigStream(&m.streams[0], Config{Codec: H264})
 
 		p := make(chan float64)
 		e := make(chan error)

@@ -10,64 +10,31 @@ import (
 	"github.com/grilario/video-converter/pkg/runner"
 )
 
-type Codec uint8
-
-const (
-	COPY Codec = iota
-	H264
-	H265
-	VP9
-	AV1
-)
-
-func (c Codec) String() string {
-	switch c {
-	case COPY:
-		return "COPY"
-	case H264:
-		return "H264"
-	case H265:
-		return "H265"
-	case VP9:
-		return "VP9"
-	case AV1:
-		return "AV1"
-	}
-
-	return "unknown"
-}
-
-func (c Codec) encoder() string {
-	switch c {
-	case COPY:
-		return "copy"
-	case H264:
-		return "libx264"
-	case H265:
-		return "libx265"
-	case VP9:
-		return "libvpx-vp9"
-	case AV1:
-		return "libsvtav1"
-	}
-
-	return "unknown"
-}
-
-func ListCodecs() []Codec {
-	return []Codec{COPY, H264, H265, VP9, AV1}
-}
-
 type Stream struct {
-	codecType     string
+	kind          string
 	codecName     string
 	codecLongName string
-	codecOut      Codec
+	outCodec      Codec
+	isAttchment   bool
 	remove        bool
 }
 
-func (s Stream) Options() (string, string, Codec, bool) {
-	return s.codecType, s.codecName, s.codecOut, s.remove
+// Return name, description of entry codec
+func (s Stream) EntryCodec() (string, string) {
+	return s.codecName, ""
+}
+
+// Return name, description of current output codec
+func (s Stream) OutCodec() (string, string) {
+	return s.outCodec.String(), ""
+}
+
+func (s Stream) Kind() string {
+	return s.kind
+}
+
+func (s Stream) ShouldRemoved() bool {
+	return s.remove
 }
 
 type Media struct {
@@ -76,20 +43,36 @@ type Media struct {
 	// path of output that will be handled by ffmpeg
 	Output string
 	// order of array preserves the stream media order of input
-	Streams []Stream
+	streams []Stream
 }
 
 func NewMedia(probe ffprobe.MediaDetails, outPath string) (Media, error) {
 	m := Media{
-		Input:  probe.Filepath,
+		Input:  probe.Path,
 		Output: outPath,
 	}
 
 	for _, s := range probe.Streams {
-		m.Streams = append(m.Streams, Stream{s.Codec_type, s.Codec_name, s.Codec_long_name, COPY, false})
+		m.streams = append(m.streams, Stream{s.CodecType, s.CodecName, s.CodecLongName, COPY, s.IsAttachment, false})
 	}
 
 	return m, nil
+}
+
+func (m *Media) Streams() []*Stream {
+	streams := []*Stream{}
+
+	for i, stream := range m.streams {
+		// remove streams that are attchments
+		if stream.isAttchment {
+			continue
+		}
+
+		// reference to original stream not copy of for range, it's is necessary to cofig method
+		streams = append(streams, &m.streams[i])
+	}
+
+	return streams
 }
 
 type Config struct {
@@ -97,16 +80,16 @@ type Config struct {
 	Remove bool
 }
 
-func (m *Media) UpdateStream(stream *Stream, config Config) {
+func (m *Media) ConfigStream(stream *Stream, config Config) {
 	hasStream := false
-	for i := range m.Streams {
-		if &m.Streams[i] == stream {
+	for i := range m.streams {
+		if &m.streams[i] == stream {
 			hasStream = true
 		}
 	}
 
 	if hasStream {
-		stream.codecOut = config.Codec
+		stream.outCodec = config.Codec
 		stream.remove = config.Remove
 	}
 }
@@ -120,21 +103,26 @@ func (m *Media) Convert(progress chan float64, errors chan error, runner runner.
 		return
 	}
 
-	args := []string{"-y", "-loglevel", "warning", "-progress", "pipe:1", "-nostats", "-i", m.Input}
+	args := []string{"-y", "-loglevel", "warning", "-progress", "pipe:1", "-nostats", "-i", m.Input, "-dn"}
+	mappers := []string{}
+	codecs := []string{}
 
-	for i, stream := range m.Streams {
-		if stream.remove {
+	for i, stream := range m.streams {
+		if stream.remove || stream.isAttchment {
 			continue
 		}
 
-		if stream.codecOut == COPY {
-			args = append(args, "-map", fmt.Sprintf("0:%v", i), "-codec", "copy")
+		if stream.outCodec == COPY {
+			mappers = append(mappers, "-map", fmt.Sprintf("0:%v", i))
+			codecs = append(codecs, fmt.Sprintf("-c:%v", i), "copy")
 		} else {
-			args = append(args, "-map", fmt.Sprintf("0:%v", i), "-codec", fmt.Sprintf("%v", stream.codecOut.encoder()))
+			mappers = append(mappers, "-map", fmt.Sprintf("0:%v", i))
+			codecs = append(codecs, fmt.Sprintf("-c:%v", i), fmt.Sprintf("%v", stream.outCodec.encoder()))
 		}
-
 	}
 
+	args = append(args, mappers...)
+	args = append(args, codecs...)
 	args = append(args, m.Output)
 
 	stdout := make(chan []byte)
@@ -142,6 +130,7 @@ func (m *Media) Convert(progress chan float64, errors chan error, runner runner.
 
 	go runner.FFmpeg(args, stdout, ffErrs)
 
+	// capture progress stats
 	for {
 		select {
 		case stdout := <-stdout:

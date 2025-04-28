@@ -9,7 +9,7 @@ import (
 	"github.com/grilario/video-converter/pkg/ffmpeg"
 	"github.com/grilario/video-converter/pkg/ffprobe"
 	"github.com/grilario/video-converter/pkg/runner"
-	"github.com/grilario/video-converter/pkg/ui"
+	"github.com/grilario/video-converter/pkg/tui"
 )
 
 var input = flag.String("i", "", "Media input")
@@ -35,10 +35,10 @@ func main() {
 		panic(err)
 	}
 
-	w := make(ui.WorkerChannel)
+	w := make(tui.WorkerChannel)
 
-	p := tea.NewProgram(ui.NewApp(&m, w))
-	go ui.ConverterWorker(p, w, r)
+	p := tea.NewProgram(tui.NewApp(&m, w))
+	go tui.ConverterWorker(p, w, r)
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)

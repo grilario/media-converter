@@ -1,9 +1,6 @@
-package ui
+package tui
 
 import (
-	// "fmt"
-	// "strings"
-	//
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/grilario/video-converter/pkg/ffmpeg"
 	"github.com/grilario/video-converter/pkg/runner"
@@ -18,7 +15,7 @@ type Model interface {
 
 type App struct {
 	media          *ffmpeg.Media
-	currentTab     Model
+	page           Model
 	selectedStream *ffmpeg.Stream
 	workerChannel  WorkerChannel
 }
@@ -26,7 +23,7 @@ type App struct {
 func NewApp(media *ffmpeg.Media, channel WorkerChannel) App {
 	return App{
 		media:          media,
-		currentTab:     StreamChooser{cursor: 0},
+		page:           NewStreamChooser(media.Streams()),
 		selectedStream: nil,
 		workerChannel:  channel,
 	}
@@ -45,13 +42,13 @@ func (app App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	newApp, cmd := app.currentTab.Update(msg, app)
+	newApp, cmd := app.page.Update(msg, app)
 
 	return newApp, cmd
 }
 
 func (app App) View() string {
-	return app.currentTab.View(app)
+	return app.page.View(app)
 }
 
 type WorkerChannel chan ffmpeg.Media
@@ -78,4 +75,13 @@ func ConverterWorker(program *tea.Program, msg WorkerChannel, runner runner.Runn
 			program.Send(ProgressMsg{progress: 1, error: err})
 		}
 	}
+}
+
+func getCursor(cursor int, current int) string {
+	indicator := " "
+	if cursor == current {
+		indicator = ">"
+	}
+
+	return indicator
 }

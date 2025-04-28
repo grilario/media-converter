@@ -1,4 +1,4 @@
-package ui
+package tui
 
 import tea "github.com/charmbracelet/bubbletea"
 
@@ -19,12 +19,12 @@ func (c Confirm) Update(msg Msg, app App) (tea.Model, tea.Cmd) {
 
 		case "enter":
 			app.workerChannel <- *app.media
-			app.currentTab = Progress{}
+			app.page = Progress{}
 			return app, nil
 		}
 	}
 
-	app.currentTab = c
+	app.page = c
 	return app, nil
 }
 
