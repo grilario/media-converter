@@ -18,6 +18,11 @@ func (c Confirm) Update(msg Msg, app App) (tea.Model, tea.Cmd) {
 			}
 
 		case "enter":
+			if c.cursor == 1 {
+				app.page = NewStreamChooser(app.media.Streams())
+				return app, nil
+			}
+
 			app.workerChannel <- *app.media
 			app.page = Progress{}
 			return app, nil
