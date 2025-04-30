@@ -1,6 +1,8 @@
 package util
 
 import (
+	"reflect"
+
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -34,6 +36,18 @@ var DefaultKeyMap = KeyMap{
 		key.WithKeys("j", "down"),
 		key.WithHelp("↓/j", "move down"),
 	),
+}
+
+func KeyMapToSlice(t any) (bindings []key.Binding) {
+	typ := reflect.TypeOf(t)
+	if typ.Kind() != reflect.Struct {
+		return nil
+	}
+	for i := range typ.NumField() {
+		v := reflect.ValueOf(t).Field(i)
+		bindings = append(bindings, v.Interface().(key.Binding))
+	}
+	return
 }
 
 func CmdHandler(msg tea.Msg) tea.Cmd {
