@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/grilario/video-converter/internal/app"
 	"github.com/grilario/video-converter/internal/tui/styles"
@@ -38,16 +39,16 @@ func (p streamSelectionPage) Init() tea.Cmd {
 func (p streamSelectionPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "enter", "l", "right":
+		switch {
+		case key.Matches(msg, util.DefaultKeyMap.Next):
 			return p.choose()
 
-		case "up", "k":
+		case key.Matches(msg, util.DefaultKeyMap.Up):
 			if p.cursor > 0 {
 				p.cursor--
 			}
 
-		case "down", "j":
+		case key.Matches(msg, util.DefaultKeyMap.Down):
 			if p.cursor < len(p.choices) {
 				p.cursor++
 			}

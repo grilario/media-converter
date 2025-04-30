@@ -1,10 +1,12 @@
 package tui
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/grilario/video-converter/internal/app"
 	"github.com/grilario/video-converter/internal/tui/page"
+	"github.com/grilario/video-converter/internal/tui/util"
 	"github.com/grilario/video-converter/pkg/ffmpeg"
 )
 
@@ -38,8 +40,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		switch {
+		case key.Matches(msg, util.DefaultKeyMap.Quit):
 			return m, tea.Quit
 		}
 

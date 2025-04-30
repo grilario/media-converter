@@ -1,6 +1,7 @@
 package page
 
 import (
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/grilario/video-converter/internal/tui/util"
 )
@@ -24,21 +25,24 @@ func (p confirmationPage) Init() tea.Cmd {
 func (c confirmationPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "l", "left", "h", "right":
+		switch {
+		case key.Matches(msg, util.DefaultKeyMap.Up, util.DefaultKeyMap.Down):
 			if c.cursor == 0 {
 				c.cursor = 1
 			} else {
 				c.cursor = 0
 			}
 
-		case "enter":
+		case key.Matches(msg, util.DefaultKeyMap.Next):
 			// if cancel option
 			if c.cursor == 1 {
 				return c, util.CmdHandler(PageChangeMsg{StreamSelectionPage})
 			}
 
 			return c, util.CmdHandler(PageChangeMsg{ProgressPage})
+
+		case key.Matches(msg, util.DefaultKeyMap.Back):
+			return c, util.CmdHandler(PageChangeMsg{StreamSelectionPage})
 		}
 	}
 
