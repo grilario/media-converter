@@ -6,10 +6,12 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/grilario/video-converter/internal/app"
+	"github.com/grilario/video-converter/internal/tui"
+	"github.com/grilario/video-converter/internal/tui/page"
 	"github.com/grilario/video-converter/pkg/ffmpeg"
 	"github.com/grilario/video-converter/pkg/ffprobe"
 	"github.com/grilario/video-converter/pkg/runner"
-	"github.com/grilario/video-converter/pkg/tui"
 )
 
 var input = flag.String("i", "", "Media input")
@@ -35,10 +37,13 @@ func main() {
 		panic(err)
 	}
 
-	w := make(tui.WorkerChannel)
+	app := app.New(m, r)
 
-	p := tea.NewProgram(tui.NewApp(&m, w))
-	go tui.ConverterWorker(p, w, r)
+	p := tea.NewProgram(tui.New(app))
+
+	app.Notify = func(progress float64, err error) {
+		p.Send(page.ProgressMsg{Progress: progress, Error: err})
+	}
 
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
