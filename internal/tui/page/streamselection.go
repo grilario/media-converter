@@ -45,9 +45,9 @@ func NewStreamSelectionPage(app *app.App) tea.Model {
 		choiceSafeStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("#37A603")),
 		choiceWarnStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("#ffe224")),
 		choiceDangerStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#ff2423")),
-		contentStyle:      lipgloss.NewStyle().Margin(1, 2).MarginBottom(1),
+		contentStyle:      lipgloss.NewStyle().Margin(1).MarginBottom(1),
 
-		helpStyles:    lipgloss.NewStyle().Margin(1).MarginTop(1),
+		helpStyles:    lipgloss.NewStyle().Margin(1),
 		helpContainer: help.New(),
 	}
 }

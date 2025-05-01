@@ -1,11 +1,12 @@
 package page
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/grilario/video-converter/internal/app"
 	"github.com/grilario/video-converter/internal/tui/styles"
 	"github.com/grilario/video-converter/internal/tui/util"
@@ -25,6 +26,12 @@ type codecSelectionPage struct {
 	selectedStream *ffmpeg.Stream
 	choices        []ffmpeg.Codec
 	nchoices       int // should len of choices + 1 its include remove and back options
+
+	choiceStyle  lipgloss.Style
+	contentStyle lipgloss.Style
+
+	helpStyles    lipgloss.Style
+	helpContainer help.Model
 }
 
 func NewCodecSelectionPage(app *app.App, selectedStream *ffmpeg.Stream) tea.Model {
@@ -42,7 +49,13 @@ func NewCodecSelectionPage(app *app.App, selectedStream *ffmpeg.Stream) tea.Mode
 		cursor:         0,
 		selectedStream: selectedStream,
 		choices:        choices,
-		nchoices:       len(choices) + 1,
+		nchoices:       len(choices) + 1, // back option in binding
+
+		choiceStyle:  lipgloss.NewStyle().Bold(true),
+		contentStyle: lipgloss.NewStyle().Margin(1),
+
+		helpStyles:    lipgloss.NewStyle().Margin(1),
+		helpContainer: help.New(),
 	}
 }
 
@@ -97,19 +110,20 @@ func (p codecSelectionPage) choose() (tea.Model, tea.Cmd) {
 }
 
 func (p codecSelectionPage) View() string {
-	var view strings.Builder
+	var view, choices strings.Builder
 
 	for i, codec := range p.choices {
 		cursor := styles.GetCursor(p.cursor, i)
 
-		fmt.Fprintf(&view, "%s %s \n", cursor, codec)
+		choices.WriteString(p.choiceStyle.Render(cursor, codec.String()) + "\n")
 	}
 
 	removeCursor := styles.GetCursor(p.cursor, p.nchoices-1)
-	fmt.Fprintf(&view, "%s Remove \n", removeCursor)
+	choices.WriteString(p.choiceStyle.Render(removeCursor, "Remove"))
 
-	backCursor := styles.GetCursor(p.cursor, p.nchoices)
-	fmt.Fprintf(&view, "%s Back \n", backCursor)
+	view.WriteString(p.contentStyle.Bold(true).Render("Codec Selection"))
+	view.WriteString(p.contentStyle.Render(choices.String()))
+	view.WriteString(p.helpStyles.Render(p.helpContainer.ShortHelpView(util.KeyMapToSlice(util.DefaultKeyMap))))
 
 	return view.String()
 }
