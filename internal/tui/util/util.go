@@ -22,19 +22,19 @@ var DefaultKeyMap = KeyMap{
 	),
 	Next: key.NewBinding(
 		key.WithKeys("enter", "l", "right"),
-		key.WithHelp("l/enter", "next"),
+		key.WithHelp("l/enter/🡒", "next"),
 	),
 	Back: key.NewBinding(
 		key.WithKeys("esc", "h", "left"),
-		key.WithHelp("h/esc", "back"),
+		key.WithHelp("h/esc/🡐", "back"),
 	),
 	Up: key.NewBinding(
 		key.WithKeys("k", "up"),
-		key.WithHelp("↑/k", "move up"),
+		key.WithHelp("k/↑", "move up"),
 	),
 	Down: key.NewBinding(
 		key.WithKeys("j", "down"),
-		key.WithHelp("↓/j", "move down"),
+		key.WithHelp("j/↓", "move down"),
 	),
 }
 

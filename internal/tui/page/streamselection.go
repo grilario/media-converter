@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/grilario/video-converter/internal/app"
 	"github.com/grilario/video-converter/internal/tui/styles"
 	"github.com/grilario/video-converter/internal/tui/util"
@@ -19,6 +21,15 @@ type streamSelectionPage struct {
 	cursor   int
 	choices  []*ffmpeg.Stream
 	nchoices int
+
+	choiceStyle       lipgloss.Style
+	choiceSafeStyle   lipgloss.Style
+	choiceWarnStyle   lipgloss.Style
+	choiceDangerStyle lipgloss.Style
+	contentStyle      lipgloss.Style
+
+	helpStyles    lipgloss.Style
+	helpContainer help.Model
 }
 
 func NewStreamSelectionPage(app *app.App) tea.Model {
@@ -29,6 +40,15 @@ func NewStreamSelectionPage(app *app.App) tea.Model {
 		cursor:   0,
 		choices:  choices,
 		nchoices: len(choices), // contains apply choice
+
+		choiceStyle:       lipgloss.NewStyle().Bold(true),
+		choiceSafeStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("#37A603")),
+		choiceWarnStyle:   lipgloss.NewStyle().Foreground(lipgloss.Color("#ffe224")),
+		choiceDangerStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("#ff2423")),
+		contentStyle:      lipgloss.NewStyle().Margin(1, 2).MarginBottom(1),
+
+		helpStyles:    lipgloss.NewStyle().Margin(1).MarginTop(1),
+		helpContainer: help.New(),
 	}
 }
 
@@ -71,23 +91,39 @@ func (p streamSelectionPage) choose() (tea.Model, tea.Cmd) {
 }
 
 func (p streamSelectionPage) View() string {
-	var s strings.Builder
+	var view, choices strings.Builder
+
 	for i, choice := range p.choices {
 		cursor := styles.GetCursor(p.cursor, i)
 
-		outCodec := "Delete"
-		if !choice.ShouldRemoved() {
-			name, _ := choice.OutCodec()
-			outCodec = fmt.Sprintf("%s", name)
+		outCodec, _ := choice.OutCodec()
+
+		switch {
+		case choice.ShouldRemoved():
+			outCodec = p.choiceDangerStyle.Render("Delete")
+
+		case outCodec == ffmpeg.COPY.String():
+			outCodec = p.choiceSafeStyle.Render(outCodec)
+
+		default:
+			outCodec = p.choiceWarnStyle.Render(outCodec)
 		}
 
 		entryCodec, _ := choice.EntryCodec()
+		entry := fmt.Sprintf("%s - %s", choice.Kind(), entryCodec)
+		entry = lipgloss.NewStyle().Width(20).Render(entry)
 
-		fmt.Fprintf(&s, "%s %s (%s)   ->   %s \n", cursor, choice.Kind(), entryCodec, outCodec)
+		out := lipgloss.PlaceHorizontal(15, lipgloss.Right, outCodec)
+
+		choices.WriteString(p.choiceStyle.Render(cursor, entry, "🡒", out) + "\n")
 	}
 
 	cursor := styles.GetCursor(p.cursor, p.nchoices)
-	fmt.Fprintf(&s, "%s Confirm", cursor)
+	choices.WriteString(fmt.Sprintf("%s %s", cursor, p.choiceStyle.Render("Confirm")))
 
-	return s.String()
+	view.WriteString(p.contentStyle.Bold(true).Render("Stream Selection"))
+	view.WriteString(p.contentStyle.Render(choices.String()))
+	view.WriteString(p.helpStyles.Render(p.helpContainer.ShortHelpView(util.KeyMapToSlice(util.DefaultKeyMap))))
+
+	return view.String()
 }
