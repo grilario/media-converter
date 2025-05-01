@@ -63,12 +63,12 @@ func (p codecSelectionPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			p.cursor = back
 			return p.choose()
 
-		case key.Matches(msg, util.DefaultKeyMap.Down):
+		case key.Matches(msg, util.DefaultKeyMap.Up):
 			if p.cursor > 0 {
 				p.cursor--
 			}
 
-		case key.Matches(msg, util.DefaultKeyMap.Up):
+		case key.Matches(msg, util.DefaultKeyMap.Down):
 			if p.cursor < p.nchoices {
 				p.cursor++
 			}
