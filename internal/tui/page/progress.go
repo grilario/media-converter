@@ -37,8 +37,8 @@ func NewProgressPage(app *app.App) tea.Model {
 		app:      app,
 		progress: 0.0,
 
-		headerStyle:    lipgloss.NewStyle().MarginLeft(1).MarginTop(1).MarginBottom(1),
-		indicatorStyle: lipgloss.NewStyle().MarginLeft(2).MarginTop(1).MarginBottom(1),
+		headerStyle:    lipgloss.NewStyle().Bold(true).Margin(1),
+		indicatorStyle: lipgloss.NewStyle().Margin(1, 2),
 		indicator:      progress.New(),
 
 		helpStyle: lipgloss.NewStyle().PaddingLeft(1).MarginTop(1).MarginBottom(1),
