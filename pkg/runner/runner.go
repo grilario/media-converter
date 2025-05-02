@@ -5,12 +5,25 @@ package runner
 import (
 	"bufio"
 	"bytes"
-	"fmt"
+	"context"
 	"os/exec"
+	"strings"
 )
 
+type Error struct {
+	Args string
+	Msg  string
+	Err  error
+}
+
+func (e *Error) Error() string {
+	return e.Err.Error() + "\nArgs: " + e.Args + "\nFFmpeg msg: " + e.Msg
+}
+
+func (e *Error) Unwrap() error { return e.Err }
+
 type Runner interface {
-	FFmpeg(args []string, stdout chan []byte, error chan error)
+	FFmpeg(ctx context.Context, args []string, stdout chan []byte, error chan error)
 	FFprobe(args []string) ([]byte, error)
 }
 
@@ -29,7 +42,7 @@ func (r *DefaultRunner) FFprobe(args []string) ([]byte, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return []byte{}, fmt.Errorf("%v \nArguments: %#v \nError: %v", err, args, stderr.String())
+		return []byte{}, &Error{Args: strings.Join(args, ", "), Msg: stderr.String(), Err: err}
 	}
 
 	return stdout.Bytes(), nil
@@ -37,8 +50,8 @@ func (r *DefaultRunner) FFprobe(args []string) ([]byte, error) {
 
 // FFmpeg runs ffmpeg with arguments provided, and send to channel stdout line by line of
 // ffmpeg stdout process or any error occurred to channel errors.
-func (r *DefaultRunner) FFmpeg(args []string, stdout chan []byte, errors chan error) {
-	cmd := exec.Command("ffmpeg", args...)
+func (r *DefaultRunner) FFmpeg(ctx context.Context, args []string, stdout chan []byte, errors chan error) {
+	cmd := exec.CommandContext(ctx, "ffmpeg", args...)
 
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
@@ -66,7 +79,7 @@ func (r *DefaultRunner) FFmpeg(args []string, stdout chan []byte, errors chan er
 	}
 
 	if err := cmd.Wait(); err != nil {
-		errors <- fmt.Errorf("%v \nArguments: %#v \nError: %v", err, args, stderr.String())
+		errors <- &Error{Args: strings.Join(args, ", "), Msg: stderr.String(), Err: err}
 		return
 	}
 
