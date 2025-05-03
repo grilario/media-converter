@@ -42,6 +42,8 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, util.DefaultKeyMap.Quit):
+			m.app.Commandc <- app.CancelConversion
+
 			return m, tea.Quit
 		}
 

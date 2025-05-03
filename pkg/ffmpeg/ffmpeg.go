@@ -1,6 +1,7 @@
 package ffmpeg
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -96,7 +97,7 @@ func (m *Media) ConfigStream(stream *Stream, config Config) {
 
 // Convert calls ffmpeg runner with arguments generated based in Streams field,
 // it's send progress to channel (1 == 100%) and any errors occurred to channel error
-func (m *Media) Convert(progress chan float64, errors chan error, runner runner.Runner) {
+func (m *Media) Convert(ctx context.Context, progress chan float64, errors chan error, runner runner.Runner) {
 	duration, err := ffprobe.MediaDuration(m.Input, runner)
 	if err != nil {
 		errors <- err
@@ -128,7 +129,7 @@ func (m *Media) Convert(progress chan float64, errors chan error, runner runner.
 	stdout := make(chan []byte)
 	ffErrs := make(chan error)
 
-	go runner.FFmpeg(args, stdout, ffErrs)
+	go runner.FFmpeg(ctx, args, stdout, ffErrs)
 
 	// capture progress stats
 	for {

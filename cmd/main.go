@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/grilario/video-converter/internal/app"
@@ -38,15 +39,29 @@ func main() {
 	}
 
 	app := app.New(m, r)
-
 	p := tea.NewProgram(tui.New(app))
 
 	app.Notify = func(progress float64, err error) {
 		p.Send(page.ProgressMsg{Progress: progress, Error: err})
 	}
 
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+
+		app.Run()
+	}()
+
+	go func() {
+		defer wg.Done()
+
+		if _, err := p.Run(); err != nil {
+			fmt.Printf("Alas, there's been an error: %v", err)
+			os.Exit(1)
+		}
+	}()
+
+	wg.Wait()
 }
