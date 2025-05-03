@@ -1,6 +1,7 @@
 package ffmpeg
 
 import (
+	"context"
 	"path"
 	"testing"
 
@@ -65,7 +66,7 @@ func TestMedia_Convert(t *testing.T) {
 
 		p := make(chan float64)
 		e := make(chan error)
-		go m.Convert(p, e, r)
+		go m.Convert(context.Background(), p, e, r)
 
 		for {
 			select {
