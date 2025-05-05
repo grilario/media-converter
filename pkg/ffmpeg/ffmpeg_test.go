@@ -79,3 +79,15 @@ func TestMedia_Convert(t *testing.T) {
 		}
 	})
 }
+
+func TestLanguageCodecs_Init(t *testing.T) {
+	t.Run("asserts length of map language codecs is 184", func(t *testing.T) {
+		assert.Len(t, LanguageCodecs, 184)
+	})
+
+	t.Run("LanguageCodecs should contains most used codes", func(t *testing.T) {
+		assert.Equal(t, "Portuguese", LanguageCodecs["por"])
+		assert.Equal(t, "English", LanguageCodecs["eng"])
+		assert.Equal(t, "Spanish; Castilian", LanguageCodecs["spa"])
+	})
+}

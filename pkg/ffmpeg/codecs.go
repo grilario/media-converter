@@ -1,5 +1,39 @@
 package ffmpeg
 
+import (
+	_ "embed"
+	"encoding/csv"
+	"strings"
+)
+
+//go:embed languages.csv
+var languageCodecsCSV string
+
+// Languages mapped to iso 639-2 key and value in english name
+var LanguageCodecs = make(map[string]string)
+
+// populate LanguageCodecs with base in language-codecs.csv
+func init() {
+	reader := csv.NewReader(strings.NewReader(languageCodecsCSV))
+	records, err := reader.ReadAll()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, record := range records {
+		key := record[0]
+		value := record[1]
+
+		LanguageCodecs[key] = value
+	}
+}
+
+type LanguageCodec string
+
+func (c LanguageCodec) String() string {
+	return LanguageCodecs[string(c)]
+}
+
 type Codec uint8
 
 const (

@@ -17,9 +17,15 @@ type Stream struct {
 	CodecType     string
 	CodecName     string
 	CodecLongName string
+	Tags          Tags
 
 	// in some media the cover image is a stream
 	IsAttachment bool
+}
+
+type Tags struct {
+	Title    string
+	Language string
 }
 
 // executes ffprobe getting information about file streams
@@ -51,6 +57,7 @@ type streamJson struct {
 	CodecName     string `json:"codec_name"`
 	CodecLongName string `json:"codec_long_name"`
 	Disposition   dispositionJson
+	Tags          Tags
 }
 
 type dispositionJson struct {
@@ -62,7 +69,7 @@ func (d detailsJson) IntoMediaDetails() MediaDetails {
 	for _, s := range d.Streams {
 		isAttachment := s.Disposition.AttachmentPic == 1
 
-		streams = append(streams, Stream{s.Index, s.CodecType, s.CodecName, s.CodecLongName, isAttachment})
+		streams = append(streams, Stream{s.Index, s.CodecType, s.CodecName, s.CodecLongName, s.Tags, isAttachment})
 	}
 
 	return MediaDetails{

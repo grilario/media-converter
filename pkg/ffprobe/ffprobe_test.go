@@ -26,7 +26,7 @@ func TestInfo(t *testing.T) {
 			args{videoFile, r},
 			MediaDetails{
 				Path:    videoFile,
-				Streams: []Stream{{0, "video", "h264", "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10", false}},
+				Streams: []Stream{{0, "video", "h264", "H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10", Tags{Language: "und"}, false}},
 			},
 			false,
 		},

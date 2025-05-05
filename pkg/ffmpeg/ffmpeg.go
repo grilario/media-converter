@@ -11,33 +11,6 @@ import (
 	"github.com/grilario/video-converter/pkg/runner"
 )
 
-type Stream struct {
-	kind          string
-	codecName     string
-	codecLongName string
-	outCodec      Codec
-	isAttchment   bool
-	remove        bool
-}
-
-// Return name, description of entry codec
-func (s Stream) EntryCodec() (string, string) {
-	return s.codecName, ""
-}
-
-// Return name, description of current output codec
-func (s Stream) OutCodec() (string, string) {
-	return s.outCodec.String(), ""
-}
-
-func (s Stream) Kind() string {
-	return s.kind
-}
-
-func (s Stream) ShouldRemoved() bool {
-	return s.remove
-}
-
 type Media struct {
 	// path of input that will be handled by ffmpeg
 	Input string
@@ -54,7 +27,17 @@ func NewMedia(probe ffprobe.MediaDetails, outPath string) (Media, error) {
 	}
 
 	for _, s := range probe.Streams {
-		m.streams = append(m.streams, Stream{s.CodecType, s.CodecName, s.CodecLongName, COPY, s.IsAttachment, false})
+		stream := Stream{
+			Tags:          Tags{s.Tags.Title, LanguageCodec(s.Tags.Language)},
+			kind:          StreamKind(s.CodecType),
+			codecName:     s.CodecName,
+			codecLongName: s.CodecLongName,
+			outCodec:      COPY,
+			isAttchment:   s.IsAttachment,
+			remove:        false,
+		}
+
+		m.streams = append(m.streams, stream)
 	}
 
 	return m, nil
@@ -163,4 +146,50 @@ func (m *Media) Convert(ctx context.Context, progress chan float64, errors chan 
 			return
 		}
 	}
+}
+
+type StreamKind string
+
+var (
+	VideoStream    StreamKind = "video"
+	AudioStream               = "audio"
+	SubtitleStream            = "subtitle"
+)
+
+func (k StreamKind) String() string {
+	return string(k)
+}
+
+type Stream struct {
+	Tags Tags
+
+	kind          StreamKind
+	codecName     string
+	codecLongName string
+	outCodec      Codec
+	isAttchment   bool
+	remove        bool
+}
+
+// Return name, description of entry codec
+func (s Stream) EntryCodec() (string, string) {
+	return s.codecName, ""
+}
+
+// Return name, description of current output codec
+func (s Stream) OutCodec() (string, string) {
+	return s.outCodec.String(), ""
+}
+
+func (s Stream) Kind() string {
+	return s.kind.String()
+}
+
+func (s Stream) ShouldRemoved() bool {
+	return s.remove
+}
+
+type Tags struct {
+	Title    string
+	Language LanguageCodec
 }
