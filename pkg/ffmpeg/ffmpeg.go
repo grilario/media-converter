@@ -152,8 +152,8 @@ type StreamKind string
 
 var (
 	VideoStream    StreamKind = "video"
-	AudioStream               = "audio"
-	SubtitleStream            = "subtitle"
+	AudioStream    StreamKind = "audio"
+	SubtitleStream StreamKind = "subtitle"
 )
 
 func (k StreamKind) String() string {
@@ -181,8 +181,8 @@ func (s Stream) OutCodec() (string, string) {
 	return s.outCodec.String(), ""
 }
 
-func (s Stream) Kind() string {
-	return s.kind.String()
+func (s Stream) Kind() StreamKind {
+	return s.kind
 }
 
 func (s Stream) ShouldRemoved() bool {

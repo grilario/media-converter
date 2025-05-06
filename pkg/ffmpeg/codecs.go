@@ -107,3 +107,7 @@ func ListVideoCodecs() []Codec {
 func ListAudioCodecs() []Codec {
 	return []Codec{COPY, MP3, AAC, AC3, FLAC, OPUS}
 }
+
+func ListSubtitlesCodecs() []Codec {
+	return []Codec{COPY}
+}

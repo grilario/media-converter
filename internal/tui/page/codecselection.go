@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	audioCodecs = ffmpeg.ListAudioCodecs()
-	videoCodecs = ffmpeg.ListVideoCodecs()
+	audioCodecs     = ffmpeg.ListAudioCodecs()
+	videoCodecs     = ffmpeg.ListVideoCodecs()
+	subtitlesCodecs = ffmpeg.ListSubtitlesCodecs()
 )
 
 var CodecSelectionPage PageID = "codecSelection"
@@ -37,11 +38,14 @@ type codecSelectionPage struct {
 func NewCodecSelectionPage(app *app.App, selectedStream *ffmpeg.Stream) tea.Model {
 	choices := []ffmpeg.Codec{}
 	switch selectedStream.Kind() {
-	case "video":
+	case ffmpeg.VideoStream:
 		choices = videoCodecs
 
-	case "audio":
+	case ffmpeg.AudioStream:
 		choices = audioCodecs
+
+	case ffmpeg.SubtitleStream:
+		choices = subtitlesCodecs
 	}
 
 	return codecSelectionPage{
@@ -49,7 +53,7 @@ func NewCodecSelectionPage(app *app.App, selectedStream *ffmpeg.Stream) tea.Mode
 		cursor:         0,
 		selectedStream: selectedStream,
 		choices:        choices,
-		nchoices:       len(choices) + 1, // back option in binding
+		nchoices:       len(choices),
 
 		choiceStyle:  lipgloss.NewStyle().Bold(true),
 		contentStyle: lipgloss.NewStyle().Margin(1),
@@ -92,15 +96,11 @@ func (p codecSelectionPage) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (p codecSelectionPage) choose() (tea.Model, tea.Cmd) {
-	removeOption := p.nchoices - 1
-	backOption := p.nchoices
+	removeOption := p.nchoices
 
 	switch p.cursor {
 	case removeOption:
 		p.app.Media.ConfigStream(p.selectedStream, ffmpeg.Config{Remove: true})
-
-	case backOption:
-		// do nothing
 
 	default:
 		p.app.Media.ConfigStream(p.selectedStream, ffmpeg.Config{Codec: p.choices[p.cursor], Remove: false})
@@ -118,7 +118,7 @@ func (p codecSelectionPage) View() string {
 		choices.WriteString(p.choiceStyle.Render(cursor, codec.String()) + "\n")
 	}
 
-	removeCursor := styles.GetCursor(p.cursor, p.nchoices-1)
+	removeCursor := styles.GetCursor(p.cursor, p.nchoices)
 	choices.WriteString(p.choiceStyle.Render(removeCursor, "Remove"))
 
 	view.WriteString(p.contentStyle.Bold(true).Render("Codec Selection"))
